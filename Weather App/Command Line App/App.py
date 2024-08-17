@@ -4,7 +4,7 @@ import json
 response = json.load(open('key.json'))
 city = str(input("Enter the name of the city you want find the weather about: "))
 api_key = response["api_key"]
-url = f'http://api.weatherapi.com/v1/current.json?key={api_key}&q={city}&aqi=no'
+url = f'http://api.weatherapi.com/v1/current.json?key={api_key}&q={city}'
 
 try:
     response = requests.get(url, verify=False).json()
