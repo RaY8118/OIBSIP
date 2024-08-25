@@ -1,15 +1,15 @@
 import sys
-import requests, json
+import requests
+import json
 from PyQt5.QtCore import Qt
-from PyQt5.QtGui import QFont, QPixmap
+from PyQt5.QtGui import QFont
 from PyQt5.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout, QLabel, QLineEdit,
-    QPushButton, QGroupBox, QHBoxLayout, QScrollArea, QComboBox,QStatusBar
+    QPushButton, QGroupBox, QHBoxLayout, QScrollArea, QComboBox, QStatusBar
 )
 from datetime import datetime
 
 
-# Your API key (replace with your actual API key)
 file = json.load(open('key.json'))
 api_key = file["api_key"]
 
@@ -18,7 +18,6 @@ class HeaderSection(QWidget):
     def __init__(self):
         super().__init__()
 
-        # App Title
         self.title_label = QLabel("Weather App")
         self.title_label.setAlignment(Qt.AlignCenter)
         self.title_label.setStyleSheet("""
@@ -30,7 +29,6 @@ class HeaderSection(QWidget):
             border-radius: 8px;
         """)
 
-        # City Input
         self.city_input = QLineEdit()
         self.city_input.setPlaceholderText("Enter City Name")
         self.city_input.setStyleSheet("""
@@ -41,7 +39,6 @@ class HeaderSection(QWidget):
             background-color: #e3f2fd;
         """)
 
-        # Fetch Weather Button
         self.get_weather_button = QPushButton("Get Weather")
         self.get_weather_button.setStyleSheet("""
             padding: 10px;
@@ -53,7 +50,6 @@ class HeaderSection(QWidget):
             font-weight: bold;
         """)
 
-        # Layout
         layout = QVBoxLayout()
         layout.addWidget(self.title_label)
         layout.addWidget(self.city_input)
@@ -61,7 +57,6 @@ class HeaderSection(QWidget):
         layout.setAlignment(Qt.AlignTop)
 
         self.setLayout(layout)
-
 
 
 class ForecastSection(QGroupBox):
@@ -88,18 +83,13 @@ class ForecastSection(QGroupBox):
     def update_forecast(self, data):
         for i in reversed(range(self.layout.count())):
             self.layout.itemAt(i).widget().setParent(None)
+        today_date = datetime.now().strftime('%Y-%m-%d')
 
         for day in data:
             date_obj = datetime.strptime(day['date'], '%Y-%m-%d')
             day_of_week = date_obj.strftime('%A')
-
-            # Create a widget for each day's forecast
             day_widget = QWidget()
-
-            # Layout for the day's forecast
             day_layout = QHBoxLayout()
-
-            # Day label
             day_label = QLabel(day_of_week)
             day_label.setStyleSheet("""
                 font-size: 16pt;
@@ -108,20 +98,28 @@ class ForecastSection(QGroupBox):
                 margin-right: 10px;
             """)
             day_layout.addWidget(day_label)
-
-            # Temperature range
-            temp_range_label = QLabel(f"{day['day']['mintemp_c']}°C / {day['day']['maxtemp_c']}°C")
+            temp_range_label = QLabel(
+                f"{day['day']['mintemp_c']}°C / {day['day']['maxtemp_c']}°C")
             temp_range_label.setStyleSheet("""
                 color: #555;
                 font-size: 14pt;
             """)
             day_layout.addWidget(temp_range_label)
+            if day['date'] == today_date:
+                day_widget.setStyleSheet("""
+                    background-color: #ffff66; /* Light blue for today's weather */
+                    border-radius: 5px;
+                    padding: 10px;
+                """)
+            else:
+                day_widget.setStyleSheet("""
+                    background-color: #ffffff; /* Default white background */
+                    border-radius: 5px;
+                    padding: 10px;
+                """)
 
-            # Set layout to the day's widget
             day_widget.setLayout(day_layout)
             self.layout.addWidget(day_widget)
-
-
 
 
 class HourlyForecastSection(QWidget):
@@ -154,6 +152,9 @@ class HourlyForecastSection(QWidget):
     def show_hourly_forecast(self, data, selected_date):
         for i in reversed(range(self.content_layout.count())):
             self.content_layout.itemAt(i).widget().setParent(None)
+        color1 = "#e3f2fd"
+        color2 = "#bbdefb"
+        color_index = 0
 
         for day in data:
             if day["date"] == selected_date:
@@ -161,15 +162,21 @@ class HourlyForecastSection(QWidget):
                     hour_text = f"{hour['time'].split(' ')[1]} - {hour['temp_c']}°C | {hour['wind_kph']} kph | {hour['humidity']}%"
                     hour_label = QLabel(hour_text)
                     hour_label.setFont(QFont('Arial', 12))
-                    hour_label.setStyleSheet("""
+
+                    if color_index % 2 == 0:
+                        bg_color = color1
+                    else:
+                        bg_color = color2
+
+                    hour_label.setStyleSheet(f"""
                         padding: 12px;
                         border-bottom: 1px solid #ddd;
-                        background-color: #e3f2fd;
+                        background-color: {bg_color};
                         border-radius: 5px;
                     """)
                     self.content_layout.addWidget(hour_label)
+                    color_index += 1
                 break
-
 
 
 class MainWindow(QMainWindow):
@@ -200,11 +207,12 @@ class MainWindow(QMainWindow):
         self.status_bar = QStatusBar()
         self.setStatusBar(self.status_bar)
 
-        self.header_section.get_weather_button.clicked.connect(self.get_weather)
-        self.hourly_forecast_section.date_combo.currentIndexChanged.connect(self.update_hourly_forecast)
+        self.header_section.get_weather_button.clicked.connect(
+            self.get_weather)
+        self.hourly_forecast_section.date_combo.currentIndexChanged.connect(
+            self.update_hourly_forecast)
 
         self.setStyleSheet("background-color: #f0f0f0;")
-
 
     def get_weather(self):
         city = self.header_section.city_input.text()
@@ -226,14 +234,16 @@ class MainWindow(QMainWindow):
     def update_hourly_forecast(self):
         index = self.hourly_forecast_section.date_combo.currentIndex()
         if index != -1:
-            selected_date = self.hourly_forecast_section.date_combo.itemText(index)
-            self.hourly_forecast_section.show_hourly_forecast(self.data, selected_date)
+            selected_date = self.hourly_forecast_section.date_combo.itemText(
+                index)
+            self.hourly_forecast_section.show_hourly_forecast(
+                self.data, selected_date)
 
 
 if __name__ == "__main__":
     app = QApplication([])
     window = MainWindow()
     window.setWindowTitle("Weather App")
-    window.resize(1000, 600)  # Adjust window size as needed
+    window.resize(1000, 600)
     window.show()
     sys.exit(app.exec_())
